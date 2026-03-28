@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nails Business - Registro</title>
+    <style>
+        body { font-family: sans-serif; background-color: #fce4ec; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 300px; text-align: center; }
+        h2 { color: #d81b60; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #f8bbd0; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #d81b60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #ad1457; }
+        #mensaje { margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>💅 Registro de Clientas</h2>
+    <form id="registroForm">
+        <input type="text" id="nombre" placeholder="Nombre de la clienta" required>
+        <input type="password" id="password" placeholder="Contraseña" required>
+        <button type="submit">Guardar Registro</button>
+    </form>
+    <div id="mensaje"></div>
+</div>
+
+<script>
+    const form = document.getElementById('registroForm');
+    const msg = document.getElementById('mensaje');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const nombre = document.getElementById('nombre').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const res = await fetch('/registrar', { // Ya no necesitas poner localhost:3000 completo
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, password })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                msg.style.color = "green";
+                msg.innerText = "✅ " + data.mensaje;
+                form.reset();
+            } else {
+                msg.style.color = "red";
+                msg.innerText = "❌ Error: " + data.error;
+            }
+        } catch (err) {
+            msg.style.color = "red";
+            msg.innerText = "❌ No hay conexión con el servidor.";
+        }
+    });
+</script>
+
+</body>
+</html>
