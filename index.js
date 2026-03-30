@@ -7,43 +7,38 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ESTA LÍNEA ES LA MAGIA: Permite ver la web en localhost:3000
+// ESTA LÍNEA ES LA MAGIA: Permite ver la web (frontend)
 app.use(express.static(__dirname));
 
-// Configuración de la conexión a MySQL
+// Configuración de la conexión a MySQL (DINÁMICA PARA LA NUBE)
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'db_citas' // 
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '', // Tu clave de MySQL local
+    database: process.env.DB_NAME || 'proyecto_citas2',
+    port: process.env.DB_PORT || 3306
 });
 
 db.connect((err) => {
     if (err) {
-        console.error("❌ Error de conexión:", err.message);
+        console.error('Error conectando a la base de datos:', err);
         return;
     }
-    console.log("✅ ¡Conectado a la base de datos!");
+    console.log('Conectado exitosamente a la base de datos');
 });
 
-// Ruta para recibir los datos del formulario
+// Ruta de ejemplo para probar el registro
 app.post('/registrar', (req, res) => {
-    const { nombre, password } = req.body;
-    
-    // Datos automáticos para las columnas obligatorias de tu tabla
-    const correoAuto = nombre.replace(/\s+/g, '').toLowerCase() + "@nails.com";
-    const rolDefecto = 'cliente';
-
-    const sql = "INSERT INTO usuarios (nombre, correo, password, rol) VALUES (?, ?, ?, ?)";
-    
-    db.query(sql, [nombre, correoAuto, password, rolDefecto], (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.status(200).json({ mensaje: "¡Clienta registrada con éxito!" });
+    const { nombre, telefono, servicio } = req.body;
+    const query = 'INSERT INTO clientas (nombre, telefono, servicio) VALUES (?, ?, ?)';
+    db.query(query, [nombre, telefono, servicio], (err, result) => {
+        if (err) return res.status(500).send(err);
+        res.send('Registro exitoso');
     });
 });
 
-app.listen(3000, () => {
-    console.log("🚀 Servidor listo en http://localhost:3000");
+// ESTO ES LO QUE NECESITA RENDER: Puerto dinámico
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log("Servidor activo en el puerto $",{PORT});
 });
