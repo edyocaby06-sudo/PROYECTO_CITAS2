@@ -1,44 +1,67 @@
+// Importamos las librerías necesarias
 const express = require('express');
-const mysql = require('mysql2');
-const cors = require('cors');
-const path = require('path');
+const cors = require('cors'); // Para permitir peticiones desde tu HTML local
+const db = require('./db'); // Importamos el pool de conexión que creamos
 
+// Iniciamos la aplicación Express
 const app = express();
-app.use(express.json());
-app.use(cors());
 
-// ESTA LÍNEA ES LA MAGIA: Permite ver la web (frontend)
-app.use(express.static(__dirname));
+// Configuramos middlewares
+app.use(cors()); // Permite CORS
+app.use(express.json()); // Permite al servidor entender JSON en el cuerpo de la petición
 
-// Configuración de la conexión a MySQL (DINÁMICA PARA LA NUBE)
-const db = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '', // Tu clave de MySQL local
-    database: process.env.DB_NAME || 'proyecto_citas2',
-    port: process.env.DB_PORT || 3306
-});
+// --- RUTAS (Endpoints) ---
 
-db.connect((err) => {
-    if (err) {
-        console.error('Error conectando a la base de datos:', err);
-        return;
+// Ruta de ejemplo: Guardar un nuevo cliente
+// Tu formulario HTML enviará datos a esta ruta usando POST a http://localhost:3000/api/clientes
+app.post('/api/clientes', async (req, res) => {
+  try {
+    // Obtenemos los datos del cuerpo de la petición
+    const { nombre_completo, telefono, correo, password } = req.body;
+
+    // Validación simple
+    if (!nombre_completo || !telefono || !correo || !password) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios' });
     }
-    console.log('Conectado exitosamente a la base de datos');
-});
 
-// Ruta de ejemplo para probar el registro
-app.post('/registrar', (req, res) => {
-    const { nombre, telefono, servicio } = req.body;
-    const query = 'INSERT INTO clientas (nombre, telefono, servicio) VALUES (?, ?, ?)';
-    db.query(query, [nombre, telefono, servicio], (err, result) => {
-        if (err) return res.status(500).send(err);
-        res.send('Registro exitoso');
+    // Consulta SQL para insertar el registro
+    // Asegúrate de que los nombres de las columnas coincidan con tu tabla real
+    const query = 'INSERT INTO usuarios (nombre_completo, telefono, correo, password) VALUES (?, ?, ?, ?)';
+    const values = [nombre_completo, telefono, correo, password];
+
+    // Ejecutamos la consulta usando el pool
+    const [result] = await db.execute(query, values);
+
+    // Respondemos con éxito
+    res.status(201).json({ 
+      message: 'Cliente registrado correctamente', 
+      id: result.insertId 
     });
+
+  } catch (error) {
+    // Si hay un error (ej. de conexión a la base de datos)
+    console.error('Error al guardar cliente:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
-// ESTO ES LO QUE NECESITA RENDER: Puerto dinámico
+// Ruta de ejemplo: Obtener todos los clientes (para pruebas)
+app.get('/api/clientes', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM usuarios');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error al obtener clientes:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// --- INICIAR EL SERVIDOR ---
+
+// Usamos el puerto configurado en .env o el 3000 por defecto
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-    console.log("Servidor activo en el puerto $",{PORT});
+  console.log("Servidor corriendo en puerto $",{PORT});
+  console.log('Presiona Ctrl+C para detener');
 });
